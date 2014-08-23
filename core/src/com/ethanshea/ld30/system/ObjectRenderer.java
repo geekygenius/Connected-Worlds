@@ -7,6 +7,7 @@ import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.ethanshea.ld30.component.Center;
 import com.ethanshea.ld30.component.Position;
 import com.ethanshea.ld30.component.Radius;
 import com.ethanshea.ld30.component.Rotation;
@@ -18,12 +19,13 @@ public class ObjectRenderer extends IteratingSystem {
 	SpriteBatch batch;
 
 	public ObjectRenderer(Camera cam, SpriteBatch batch) {
-		super(Family.getFamilyFor(Rotation.class,Surface.class,SpriteComponent.class));
+		super(Family.getFamilyFor(Rotation.class, Surface.class,
+				SpriteComponent.class));
 		this.cam = cam;
 		this.batch = batch;
 	}
-	
-	public void update(float deltaTime){
+
+	public void update(float deltaTime) {
 		batch.setProjectionMatrix(cam.combined);
 		batch.begin();
 		super.update(deltaTime);
@@ -34,12 +36,21 @@ public class ObjectRenderer extends IteratingSystem {
 	public void processEntity(Entity entity, float deltaTime) {
 		Sprite s = entity.getComponent(SpriteComponent.class).sprite;
 		float deg = entity.getComponent(Rotation.class).r;
-		s.setRotation(deg-90);
-		float rad = ((float)Math.PI/180)*deg;
+		s.setRotation(deg - 90);
+		float rad = ((float) Math.PI / 180) * deg;
+		
 		Entity surface = entity.getComponent(Surface.class).surface;
 		float size = surface.getComponent(Radius.class).size;
 		Position c = surface.getComponent(Position.class);
-		s.setPosition((float)(Math.cos(rad)*size) + c.x - s.getWidth()/2, (float)(Math.sin(rad)*size) + c.y);
+		
+		float sx = (float) Math.cos(rad);
+		float sy = (float) Math.sin(rad);
+		s.setPosition(sx * size + c.x - s.getWidth() / 2, sy * size + c.y);
+		
+		Position center = entity.getComponent(Center.class);
+		center.x = sx * (size+8) + c.x;
+		center.y = sy * (size+8) + c.y;
+		
 		s.draw(batch);
 	}
 }
