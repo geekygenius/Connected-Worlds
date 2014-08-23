@@ -16,6 +16,7 @@ import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.ethanshea.ld30.component.Center;
 import com.ethanshea.ld30.component.Destination;
+import com.ethanshea.ld30.component.Ownership;
 import com.ethanshea.ld30.component.Position;
 import com.ethanshea.ld30.component.Radius;
 import com.ethanshea.ld30.component.Rotation;
@@ -34,6 +35,7 @@ public class Game extends ApplicationAdapter implements InputProcessor {
 	OrthographicCamera camera;
 	Texture tankImg;
 	Texture doorImg;
+	Texture factoryImg;
 
 	@Override
 	public void create() {
@@ -41,11 +43,15 @@ public class Game extends ApplicationAdapter implements InputProcessor {
 		engine = new Engine();
 		camera = new OrthographicCamera();
 		camera.setToOrtho(false, 800, 480);
+		camera.position.x = 0;
+		camera.position.y = 15000;
+		camera.zoom = 2;
 
 		Gdx.input.setInputProcessor(this);
 
 		tankImg = new Texture(Gdx.files.internal("tank.png"));
 		doorImg = new Texture(Gdx.files.internal("door.png"));
+		factoryImg = new Texture(Gdx.files.internal("factory.png"));
 
 		engine.addSystem(new OrderSystem(camera));
 		engine.addSystem(new PlanetRenderer(camera));
@@ -53,52 +59,58 @@ public class Game extends ApplicationAdapter implements InputProcessor {
 		engine.addSystem(new SecectionManager(camera));
 
 		genLevel();
-		//engine.addEntity(mkTank(0, p));
+		// engine.addEntity(mkTank(0, p));
 	}
-	
-	private class PlanetSystem{
-		public PlanetSystem(Entity planet, Entity door){
+
+	private class PlanetSystem {
+		public PlanetSystem(Entity planet, Entity door) {
 			this.planet = planet;
 			this.door = door;
 		}
+
 		public Entity planet;
-		public Entity door; 
+		public Entity door;
 	}
 
 	private void genLevel() {
 		ArrayList<PlanetSystem> planets = new ArrayList<PlanetSystem>();
-		genLoop:
-		while (planets.size() < 15) {
+		Entity home = mkPlanet(0, 15000, 250);
+		home.getComponent(Ownership.class).ownership = 1;
+		planets.add(new PlanetSystem(home, mkDoor(135, home)));
+		Entity enemy = mkPlanet(15000, 0, 250);
+		enemy.getComponent(Ownership.class).ownership = -1;
+		planets.add(new PlanetSystem(enemy, mkDoor(-45, enemy)));
+		genLoop: while (planets.size() < 15) {
 			float x = (float) (Math.random() * 15000);
 			float y = (float) (Math.random() * 15000);
-			for (PlanetSystem e:planets){
+			for (PlanetSystem e : planets) {
 				Position pos = e.planet.getComponent(Position.class);
 				float detect = 100 + e.planet.getComponent(Radius.class).size;
-				if ((pos.x - x) * (pos.x - x) + (pos.y - y) * (pos.y - y) < detect * detect){
+				if ((pos.x - x) * (pos.x - x) + (pos.y - y) * (pos.y - y) < detect * detect) {
 					continue genLoop;
 				}
 			}
-			//It's not close to another planet, go ahead and make it.
-			Entity p = mkPlanet(x,y,100+((float)Math.random()*300));
-			Entity door = mkDoor(((float)Math.random()*360)-180,p);
-			if (planets.size()>1){
+			// It's not close to another planet, go ahead and make it.
+			Entity p = mkPlanet(x, y, 100 + ((float) Math.random() * 300));
+			Entity door = mkDoor(((float) Math.random() * 360) - 180, p);
+			if (planets.size() > 1) {
 				Destination d = door.getComponent(Destination.class);
-				d.planet = planets.get(planets.size()-1).planet;
-				d.r = planets.get(planets.size()-1).door.getComponent(Rotation.class).r+180;
-				if (d.r>180){
-					d.r-=360;
+				d.planet = planets.get(planets.size() - 1).planet;
+				d.r = planets.get(planets.size() - 1).door.getComponent(Rotation.class).r + 180;
+				if (d.r > 180) {
+					d.r -= 360;
 				}
 			}
-			planets.add(new PlanetSystem(p,door));
+			planets.add(new PlanetSystem(p, door));
 		}
-		Destination d = planets.get(planets.size()-1).door.getComponent(Destination.class);
+		Destination d = planets.get(planets.size() - 1).door.getComponent(Destination.class);
 		d.planet = planets.get(0).planet;
-		d.r = planets.get(0).door.getComponent(Rotation.class).r+180;
-		if (d.r>180){
-			d.r-=360;
+		d.r = planets.get(0).door.getComponent(Rotation.class).r + 180;
+		if (d.r > 180) {
+			d.r -= 360;
 		}
-		
-		for (PlanetSystem sys:planets){
+
+		for (PlanetSystem sys : planets) {
 			engine.addEntity(sys.planet);
 			engine.addEntity(sys.door);
 		}
@@ -141,6 +153,7 @@ public class Game extends ApplicationAdapter implements InputProcessor {
 		Entity e = new Entity();
 		e.add(new Position(x, y));
 		e.add(new Radius(size));
+		e.add(new Ownership(0));
 		return e;
 	}
 
