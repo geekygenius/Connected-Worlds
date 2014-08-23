@@ -143,9 +143,6 @@ public class Game extends ApplicationAdapter implements InputProcessor{
 	@Override
 	public boolean scrolled(int amount) {
 		camera.zoom *= Math.pow(2, amount);
-		if (camera.zoom<1/16f){
-			camera.zoom = 1/16f;
-		}
 		return true;
 	}
 }

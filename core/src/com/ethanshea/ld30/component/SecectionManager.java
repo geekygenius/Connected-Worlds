@@ -24,6 +24,7 @@ public class SecectionManager extends IteratingSystem {
 	}
 
 	public void update(float delta) {
+		render.setProjectionMatrix(cam.combined);
 		render.begin(ShapeType.Line);
 		render.setColor(.1f, .8f, .1f, 1);
 		if (Gdx.input.isButtonPressed(Input.Buttons.LEFT)) {
