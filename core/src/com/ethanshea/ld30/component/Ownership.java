@@ -12,7 +12,11 @@ public class Ownership extends Component {
 		ownership = own;
 	}
 
-	public Color getTint() {
+	public Color getColor() {
 		return new Color(ownership < 0 ? (1 - ownership) * .15f + .3f: .3f, .3f, ownership > 0 ? ownership * .15f + .3f: .3f, 1f);
+	}
+	
+	public Color getTint() {
+		return new Color(ownership < 0 ? (1 - ownership) * .15f + .85f: .85f, .85f, ownership > 0 ? ownership * .15f + .85f: .85f, 1f);
 	}
 }

@@ -24,7 +24,7 @@ public class PlanetRenderer extends IteratingSystem {
 	public void processEntity(Entity entity, float deltaTime) {
 		renderer.setProjectionMatrix(cam.combined);
 		renderer.begin(ShapeType.Filled);
-		renderer.setColor(entity.getComponent(Ownership.class).getTint());
+		renderer.setColor(entity.getComponent(Ownership.class).getColor());
 		Position pos = entity.getComponent(Position.class);
 		renderer.circle(pos.x, pos.y, entity.getComponent(Radius.class).size);
 		renderer.end();

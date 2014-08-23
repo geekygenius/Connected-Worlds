@@ -6,27 +6,33 @@ import com.badlogic.ashley.core.Family;
 import com.badlogic.ashley.systems.IteratingSystem;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.IntMap.Entry;
+import com.ethanshea.ld30.Game;
+import com.ethanshea.ld30.component.Center;
 import com.ethanshea.ld30.component.Destination;
+import com.ethanshea.ld30.component.FactoryCount;
+import com.ethanshea.ld30.component.Ownership;
 import com.ethanshea.ld30.component.Position;
 import com.ethanshea.ld30.component.Radius;
 import com.ethanshea.ld30.component.Rotation;
 import com.ethanshea.ld30.component.Selection;
 import com.ethanshea.ld30.component.Surface;
 
-public class OrderSystem extends IteratingSystem {
+public class CommandSystem extends IteratingSystem {
 	Engine engine;
 	Family planet = Family.getFamilyFor(Position.class, Radius.class);
+	Family factory = Family.getFamilyFor(Rotation.class, Surface.class, Ownership.class);
 	Camera cam;
 	Entity currentPlanet;
 	float currentAngle;
 	ShapeRenderer render = new ShapeRenderer();
 
-	public OrderSystem(Camera cam) {
+	public CommandSystem(Camera cam) {
 		super(Family.getFamilyFor(Surface.class, Rotation.class, Selection.class, Destination.class));
 		this.cam = cam;
 	}
@@ -44,7 +50,7 @@ public class OrderSystem extends IteratingSystem {
 
 			final float RANGE = 50;
 			float detect = RANGE + e.value.getComponent(Radius.class).size;
-			if ((pos.x - center.x) * (pos.x - center.x) + (pos.y - center.y) * (pos.y - center.y) < detect * detect) {
+			if (Game.distanceSq(pos.x, pos.y, center.x, center.y) < detect * detect) {
 				double angleRad = Math.atan2(pos.y - center.y, pos.x - center.x);
 				currentPlanet = e.value;
 				currentAngle = (float) (180 / Math.PI * angleRad);
@@ -59,6 +65,28 @@ public class OrderSystem extends IteratingSystem {
 				break;
 			}
 		}
+		if (Gdx.input.justTouched() && Gdx.input.isButtonPressed(0) && currentPlanet != null) {
+			// Place factories
+			if (currentPlanet.getComponent(FactoryCount.class).count < 5
+					&& (currentPlanet.getComponent(Ownership.class).ownership > .5f)
+					&& (Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT) || Gdx.input
+							.isKeyPressed(Input.Keys.CONTROL_RIGHT))) {
+				engine.addEntity(Game.mkFactory(currentAngle, currentPlanet, 1));
+			}
+
+			// Make tanks
+			if (Gdx.input.isButtonPressed(Keys.SHIFT_LEFT) || Gdx.input.isButtonPressed(Keys.SHIFT_RIGHT)) {
+				// Are we over a factory that we own?
+				for (Entry<Entity> e : engine.getEntitiesFor(factory)) {
+					Center c = e.value.getComponent(Center.class);
+					if (Game.distanceSq(c.x, c.y, pos.x, pos.y) < 20 * 20) {
+						engine.addEntity(Game.mkTank(currentAngle, currentPlanet, 1));
+					}
+				}
+			}
+		}
+
+		// Update objects
 		super.update(delta);
 	}
 
@@ -67,7 +95,6 @@ public class OrderSystem extends IteratingSystem {
 		if ((currentPlanet != null) && (Gdx.input.isButtonPressed(Input.Buttons.RIGHT))) {
 			// Set the destination
 			if (entity.getComponent(Selection.class).selected) {
-				System.out.println("destination set.");
 				d.planet = currentPlanet;
 				d.r = currentAngle;
 			}
@@ -78,10 +105,10 @@ public class OrderSystem extends IteratingSystem {
 			float diff = d.r - rot.r;
 			int dir = (diff <= -180) || ((diff > 0) && (diff <= 180)) ? 1 : -1;
 			rot.r += 10f * dir / entity.getComponent(Surface.class).surface.getComponent(Radius.class).size;
-			if (rot.r<-180)
-				rot.r+=360;
-			if (rot.r>180)
-				rot.r-=360;
+			if (rot.r < -180)
+				rot.r += 360;
+			if (rot.r > 180)
+				rot.r -= 360;
 		}
 	}
 }

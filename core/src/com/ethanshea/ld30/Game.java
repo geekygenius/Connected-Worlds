@@ -12,30 +12,27 @@ import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.ethanshea.ld30.component.Center;
-import com.ethanshea.ld30.component.Destination;
-import com.ethanshea.ld30.component.Ownership;
-import com.ethanshea.ld30.component.Position;
-import com.ethanshea.ld30.component.Radius;
-import com.ethanshea.ld30.component.Rotation;
-import com.ethanshea.ld30.component.Selection;
-import com.ethanshea.ld30.component.SpriteComponent;
-import com.ethanshea.ld30.component.Surface;
+import com.ethanshea.ld30.component.*;
+import com.ethanshea.ld30.system.CommandSystem;
 import com.ethanshea.ld30.system.ObjectRenderer;
-import com.ethanshea.ld30.system.OrderSystem;
 import com.ethanshea.ld30.system.PlanetRenderer;
 import com.ethanshea.ld30.system.SecectionManager;
+import com.ethanshea.ld30.system.TankAISystem;
 
 public class Game extends ApplicationAdapter implements InputProcessor {
 	SpriteBatch batch;
 	Engine engine;
 	Family planet;
 	OrthographicCamera camera;
-	Texture tankImg;
-	Texture doorImg;
-	Texture factoryImg;
+	static BitmapFont font;
+	static Texture tankImg;
+	static Texture doorImg;
+	static Texture factoryImg;
+	public static Player user = new Player();
+	public static Player computer = new Player();
 
 	@Override
 	public void create() {
@@ -46,14 +43,15 @@ public class Game extends ApplicationAdapter implements InputProcessor {
 		camera.position.x = 0;
 		camera.position.y = 15000;
 		camera.zoom = 2;
-
 		Gdx.input.setInputProcessor(this);
 
+		font = new BitmapFont(Gdx.files.internal("font.fnt"));
 		tankImg = new Texture(Gdx.files.internal("tank.png"));
 		doorImg = new Texture(Gdx.files.internal("door.png"));
 		factoryImg = new Texture(Gdx.files.internal("factory.png"));
 
-		engine.addSystem(new OrderSystem(camera));
+		engine.addSystem(new CommandSystem(camera));
+		engine.addSystem(new TankAISystem());
 		engine.addSystem(new PlanetRenderer(camera));
 		engine.addSystem(new ObjectRenderer(camera, batch));
 		engine.addSystem(new SecectionManager(camera));
@@ -86,7 +84,7 @@ public class Game extends ApplicationAdapter implements InputProcessor {
 			for (PlanetSystem e : planets) {
 				Position pos = e.planet.getComponent(Position.class);
 				float detect = 100 + e.planet.getComponent(Radius.class).size;
-				if ((pos.x - x) * (pos.x - x) + (pos.y - y) * (pos.y - y) < detect * detect) {
+				if (distanceSq(pos.x, pos.y, x, y) < detect * detect) {
 					continue genLoop;
 				}
 			}
@@ -143,42 +141,73 @@ public class Game extends ApplicationAdapter implements InputProcessor {
 			camera.position.x -= MOVMENT_SPEED * camera.zoom;
 		}
 
+		user.money += user.factories;
+		computer.money += computer.factories;
+
 		// Update
 		accum += Gdx.graphics.getDeltaTime();
 		// engine.update(Gdx.graphics.getDeltaTime());
 		engine.update(accum);
 	}
 
-	public Entity mkPlanet(float x, float y, float size) {
+	public static Entity mkPlanet(float x, float y, float size) {
 		Entity e = new Entity();
 		e.add(new Position(x, y));
 		e.add(new Radius(size));
 		e.add(new Ownership(0));
+		e.add(new FactoryCount());
 		return e;
 	}
 
-	public Entity mkDoor(float pos, Entity planet) {
+	public static Entity mkSurfaceObj(float pos, Entity planet) {
 		Entity e = new Entity();
+		e.add(new Rotation(pos));
+		e.add(new Surface(planet));
+		float rad = (float) (Math.PI / 180) * pos;
+		float size = planet.getComponent(Radius.class).size;
+		Position c = planet.getComponent(Position.class);
+		e.add(new Center((float) (Math.cos(rad) * size + c.x), (float) (Math.sin(rad) * size + c.y)));
+		return e;
+	}
+
+	public static Entity mkFactory(float pos, Entity planet, float ownership) {
+		Entity e = mkSurfaceObj(pos, planet);
+		Ownership own = new Ownership(1);
+		e.add(own);
+		Sprite s = new Sprite(factoryImg);
+		s.setOrigin(16, 0);
+		s.setColor(own.getTint());
+		e.add(new SpriteComponent(s));
+		return e;
+	}
+
+	public static Entity mkDoor(float pos, Entity planet) {
+		Entity e = mkSurfaceObj(pos, planet);
 		Sprite s = new Sprite(doorImg);
 		s.setOrigin(16, 0);
 		e.add(new SpriteComponent(s));
-		e.add(new Rotation(pos));
-		e.add(new Surface(planet));
 		e.add(new Destination(0, null));
 		return e;
 	}
 
-	public Entity mkTank(float pos, Entity planet) {
+	public static Entity mkTank(float pos, Entity planet, float owner) {
 		Entity e = new Entity();
+		Ownership own = new Ownership(owner);
 		Sprite s = new Sprite(tankImg);
 		s.setOrigin(16, 0);
+		s.setColor(own.getTint());
 		e.add(new SpriteComponent(s));
 		e.add(new Rotation(pos));
 		e.add(new Surface(planet));
 		e.add(new Selection());
 		e.add(new Center(0, 0));
-		e.add(new Destination(0, null));
+		e.add(own);
+		e.add(new Destination(pos, planet));
 		return e;
+	}
+
+	public static float distanceSq(float x1, float y1, float x2, float y2) {
+		return (x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2);
 	}
 
 	public void dispose() {
