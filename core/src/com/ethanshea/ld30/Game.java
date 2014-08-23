@@ -24,6 +24,7 @@ import com.ethanshea.ld30.system.TankAISystem;
 
 public class Game extends ApplicationAdapter implements InputProcessor {
 	SpriteBatch batch;
+	SpriteBatch hud;
 	Engine engine;
 	Family planet;
 	OrthographicCamera camera;
@@ -37,6 +38,7 @@ public class Game extends ApplicationAdapter implements InputProcessor {
 	@Override
 	public void create() {
 		batch = new SpriteBatch();
+		hud = new SpriteBatch();
 		engine = new Engine();
 		camera = new OrthographicCamera();
 		camera.setToOrtho(false, 800, 480);
@@ -46,6 +48,8 @@ public class Game extends ApplicationAdapter implements InputProcessor {
 		Gdx.input.setInputProcessor(this);
 
 		font = new BitmapFont(Gdx.files.internal("font.fnt"));
+		font.setScale(1.1f, 1.5f);
+		font.setColor(1f, 1, .5f, 1);
 		tankImg = new Texture(Gdx.files.internal("tank.png"));
 		doorImg = new Texture(Gdx.files.internal("door.png"));
 		factoryImg = new Texture(Gdx.files.internal("factory.png"));
@@ -83,7 +87,7 @@ public class Game extends ApplicationAdapter implements InputProcessor {
 			float y = (float) (Math.random() * 15000);
 			for (PlanetSystem e : planets) {
 				Position pos = e.planet.getComponent(Position.class);
-				float detect = 100 + e.planet.getComponent(Radius.class).size;
+				float detect = 300 + e.planet.getComponent(Radius.class).size;
 				if (distanceSq(pos.x, pos.y, x, y) < detect * detect) {
 					continue genLoop;
 				}
@@ -121,8 +125,6 @@ public class Game extends ApplicationAdapter implements InputProcessor {
 		Gdx.gl.glClearColor(0, 0, 0, 1);
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-		camera.update();
-
 		// Input
 		if (Gdx.input.isKeyPressed(Keys.ESCAPE)) {
 			Gdx.app.exit();
@@ -141,6 +143,8 @@ public class Game extends ApplicationAdapter implements InputProcessor {
 			camera.position.x -= MOVMENT_SPEED * camera.zoom;
 		}
 
+		camera.update();
+
 		user.money += user.factories;
 		computer.money += computer.factories;
 
@@ -148,6 +152,10 @@ public class Game extends ApplicationAdapter implements InputProcessor {
 		accum += Gdx.graphics.getDeltaTime();
 		// engine.update(Gdx.graphics.getDeltaTime());
 		engine.update(accum);
+		hud.begin();
+		font.draw(hud, String.format("$%,d", user.money), 0, font.getCapHeight() - font.getDescent());
+		hud.end();
+
 	}
 
 	public static Entity mkPlanet(float x, float y, float size) {
@@ -178,6 +186,7 @@ public class Game extends ApplicationAdapter implements InputProcessor {
 		s.setOrigin(16, 0);
 		s.setColor(own.getTint());
 		e.add(new SpriteComponent(s));
+		e.add(new FactoryID());
 		return e;
 	}
 
@@ -187,6 +196,7 @@ public class Game extends ApplicationAdapter implements InputProcessor {
 		s.setOrigin(16, 0);
 		e.add(new SpriteComponent(s));
 		e.add(new Destination(0, null));
+		e.add(new DoorID());
 		return e;
 	}
 
@@ -200,9 +210,9 @@ public class Game extends ApplicationAdapter implements InputProcessor {
 		e.add(new Rotation(pos));
 		e.add(new Surface(planet));
 		e.add(new Selection());
-		e.add(new Center(0, 0));
 		e.add(own);
 		e.add(new Destination(pos, planet));
+		e.add(new Speed());
 		return e;
 	}
 
@@ -254,8 +264,8 @@ public class Game extends ApplicationAdapter implements InputProcessor {
 		camera.zoom *= Math.pow(2, amount);
 		if (camera.zoom < 1 / 16f)
 			camera.zoom = 1 / 16f;
-		if (camera.zoom > 16f)
-			camera.zoom = 16f;
+		if (camera.zoom > 32f)
+			camera.zoom = 32f;
 		return true;
 	}
 }

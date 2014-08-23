@@ -25,7 +25,7 @@ public class SecectionManager extends IteratingSystem {
 	ShapeRenderer render = new ShapeRenderer();
 
 	public SecectionManager(Camera cam) {
-		super(Family.getFamilyFor(Selection.class, Center.class));
+		super(Family.getFamilyFor(Selection.class, Rotation.class, Surface.class));
 		this.cam = cam;
 	}
 
@@ -41,8 +41,9 @@ public class SecectionManager extends IteratingSystem {
 			}
 			end.x = pos.x;
 			end.y = pos.y;
-			box.set(Math.min(start.x,end.x), Math.min(start.y,end.y), Math.abs(end.x - start.x), Math.abs(end.y - start.y));
-			render.rect(box.x,box.y,box.width,box.height);
+			box.set(Math.min(start.x, end.x), Math.min(start.y, end.y), Math.abs(end.x - start.x),
+					Math.abs(end.y - start.y));
+			render.rect(box.x, box.y, box.width, box.height);
 		}
 		super.update(delta);
 		render.end();
@@ -50,20 +51,22 @@ public class SecectionManager extends IteratingSystem {
 
 	@Override
 	public void processEntity(Entity entity, float deltaTime) {
+		Selection select = entity.getComponent(Selection.class);
+		if (!(select.selected || Gdx.input.isButtonPressed(Input.Buttons.LEFT)))
+			return;
 		float rad = ((float) Math.PI / 180) * entity.getComponent(Rotation.class).r;
 		float sx = (float) Math.cos(rad);
 		float sy = (float) Math.sin(rad);
 		Entity surface = entity.getComponent(Surface.class).surface;
 		float size = surface.getComponent(Radius.class).size;
 		Position c = surface.getComponent(Position.class);
-		Position pos = new Position(sx * (size+8) + c.x, sy * (size+8) + c.y);
-		
-		Selection select = entity.getComponent(Selection.class);
+		Position pos = new Position(sx * (size + 8) + c.x, sy * (size + 8) + c.y);
+
 		if (Gdx.input.isButtonPressed(Input.Buttons.LEFT)) {
 			select.selected = box.contains(pos.x, pos.y);
 		}
-		if (select.selected){
-			render.rect(pos.x-20, pos.y-20, 40, 40);
+		if (select.selected) {
+			render.rect(pos.x - 20, pos.y - 20, 40, 40);
 		}
 	}
 }

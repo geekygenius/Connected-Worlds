@@ -13,20 +13,12 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.IntMap.Entry;
 import com.ethanshea.ld30.Game;
-import com.ethanshea.ld30.component.Center;
-import com.ethanshea.ld30.component.Destination;
-import com.ethanshea.ld30.component.FactoryCount;
-import com.ethanshea.ld30.component.Ownership;
-import com.ethanshea.ld30.component.Position;
-import com.ethanshea.ld30.component.Radius;
-import com.ethanshea.ld30.component.Rotation;
-import com.ethanshea.ld30.component.Selection;
-import com.ethanshea.ld30.component.Surface;
+import com.ethanshea.ld30.component.*;
 
 public class CommandSystem extends IteratingSystem {
 	Engine engine;
 	Family planet = Family.getFamilyFor(Position.class, Radius.class);
-	Family factory = Family.getFamilyFor(Rotation.class, Surface.class, Ownership.class);
+	Family factory = Family.getFamilyFor(Rotation.class, Surface.class, Ownership.class,Center.class,FactoryID.class);
 	Camera cam;
 	Entity currentPlanet;
 	float currentAngle;
@@ -67,20 +59,26 @@ public class CommandSystem extends IteratingSystem {
 		}
 		if (Gdx.input.justTouched() && Gdx.input.isButtonPressed(0) && currentPlanet != null) {
 			// Place factories
-			if (currentPlanet.getComponent(FactoryCount.class).count < 5
+			if (Game.user.money > 5000
+					&& currentPlanet.getComponent(FactoryCount.class).count < 5
 					&& (currentPlanet.getComponent(Ownership.class).ownership > .5f)
 					&& (Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT) || Gdx.input
 							.isKeyPressed(Input.Keys.CONTROL_RIGHT))) {
 				engine.addEntity(Game.mkFactory(currentAngle, currentPlanet, 1));
+				Game.user.factories++;
+				Game.user.money-=5000;
 			}
 
 			// Make tanks
-			if (Gdx.input.isButtonPressed(Keys.SHIFT_LEFT) || Gdx.input.isButtonPressed(Keys.SHIFT_RIGHT)) {
+			if (Game.user.money > 2000
+					&& (Gdx.input.isButtonPressed(Keys.SHIFT_LEFT) || Gdx.input.isButtonPressed(Keys.SHIFT_RIGHT))) {
 				// Are we over a factory that we own?
 				for (Entry<Entity> e : engine.getEntitiesFor(factory)) {
 					Center c = e.value.getComponent(Center.class);
 					if (Game.distanceSq(c.x, c.y, pos.x, pos.y) < 20 * 20) {
 						engine.addEntity(Game.mkTank(currentAngle, currentPlanet, 1));
+						Game.user.money-=2000;
+						break;
 					}
 				}
 			}
@@ -98,17 +96,6 @@ public class CommandSystem extends IteratingSystem {
 				d.planet = currentPlanet;
 				d.r = currentAngle;
 			}
-		}
-		// Go to the current destination
-		Rotation rot = entity.getComponent(Rotation.class);
-		if ((Math.abs(rot.r - d.r) > 5) && (d.planet.equals(entity.getComponent(Surface.class).surface))) {
-			float diff = d.r - rot.r;
-			int dir = (diff <= -180) || ((diff > 0) && (diff <= 180)) ? 1 : -1;
-			rot.r += 10f * dir / entity.getComponent(Surface.class).surface.getComponent(Radius.class).size;
-			if (rot.r < -180)
-				rot.r += 360;
-			if (rot.r > 180)
-				rot.r -= 360;
 		}
 	}
 }
