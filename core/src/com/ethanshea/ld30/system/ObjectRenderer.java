@@ -46,11 +46,6 @@ public class ObjectRenderer extends IteratingSystem {
 		float sx = (float) Math.cos(rad);
 		float sy = (float) Math.sin(rad);
 		s.setPosition(sx * size + c.x - s.getWidth() / 2, sy * size + c.y);
-		
-		Position center = entity.getComponent(Center.class);
-		center.x = sx * (size+8) + c.x;
-		center.y = sy * (size+8) + c.y;
-		
 		s.draw(batch);
 	}
 }

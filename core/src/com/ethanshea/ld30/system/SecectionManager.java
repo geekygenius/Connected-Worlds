@@ -1,4 +1,4 @@
-package com.ethanshea.ld30.component;
+package com.ethanshea.ld30.system;
 
 import com.badlogic.ashley.core.Entity;
 import com.badlogic.ashley.core.Family;
@@ -10,6 +10,12 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector3;
+import com.ethanshea.ld30.component.Center;
+import com.ethanshea.ld30.component.Position;
+import com.ethanshea.ld30.component.Radius;
+import com.ethanshea.ld30.component.Rotation;
+import com.ethanshea.ld30.component.Selection;
+import com.ethanshea.ld30.component.Surface;
 
 public class SecectionManager extends IteratingSystem {
 	Position start = new Position(0, 0);
@@ -19,7 +25,7 @@ public class SecectionManager extends IteratingSystem {
 	ShapeRenderer render = new ShapeRenderer();
 
 	public SecectionManager(Camera cam) {
-		super(Family.getFamilyFor(Selectable.class, Center.class));
+		super(Family.getFamilyFor(Selection.class, Center.class));
 		this.cam = cam;
 	}
 
@@ -44,8 +50,15 @@ public class SecectionManager extends IteratingSystem {
 
 	@Override
 	public void processEntity(Entity entity, float deltaTime) {
-		Position pos = entity.getComponent(Center.class);
-		Selectable select = entity.getComponent(Selectable.class);
+		float rad = ((float) Math.PI / 180) * entity.getComponent(Rotation.class).r;
+		float sx = (float) Math.cos(rad);
+		float sy = (float) Math.sin(rad);
+		Entity surface = entity.getComponent(Surface.class).surface;
+		float size = surface.getComponent(Radius.class).size;
+		Position c = surface.getComponent(Position.class);
+		Position pos = new Position(sx * (size+8) + c.x, sy * (size+8) + c.y);
+		
+		Selection select = entity.getComponent(Selection.class);
 		if (Gdx.input.isButtonPressed(Input.Buttons.LEFT)) {
 			select.selected = box.contains(pos.x, pos.y);
 		}
