@@ -95,21 +95,18 @@ public class Game extends ApplicationAdapter implements InputProcessor {
 			// It's not close to another planet, go ahead and make it.
 			Entity p = mkPlanet(x, y, 100 + ((float) Math.random() * 300));
 			Entity door = mkDoor(((float) Math.random() * 360) - 180, p);
-			if (planets.size() > 1) {
-				Destination d = door.getComponent(Destination.class);
-				d.planet = planets.get(planets.size() - 1).planet;
-				d.r = planets.get(planets.size() - 1).door.getComponent(Rotation.class).r + 180;
-				if (d.r > 180) {
-					d.r -= 360;
-				}
-			}
+
 			planets.add(new PlanetSystem(p, door));
 		}
-		Destination d = planets.get(planets.size() - 1).door.getComponent(Destination.class);
-		d.planet = planets.get(0).planet;
-		d.r = planets.get(0).door.getComponent(Rotation.class).r + 180;
-		if (d.r > 180) {
-			d.r -= 360;
+		// Link the doors randomly
+		for (PlanetSystem sys : planets) {
+			Destination d = sys.door.getComponent(Destination.class);
+			PlanetSystem dest = planets.get((int) (Math.random() * 15));
+			d.planet = dest.planet;
+			d.r = dest.door.getComponent(Rotation.class).r + 180;
+			if (d.r > 180) {
+				d.r -= 360;
+			}
 		}
 
 		for (PlanetSystem sys : planets) {
@@ -209,7 +206,8 @@ public class Game extends ApplicationAdapter implements InputProcessor {
 		e.add(new SpriteComponent(s));
 		e.add(new Rotation(pos));
 		e.add(new Surface(planet));
-		e.add(new Selection());
+		if (own.isUser())
+			e.add(new Selection());
 		e.add(own);
 		e.add(new Destination(pos, planet));
 		e.add(new Speed());

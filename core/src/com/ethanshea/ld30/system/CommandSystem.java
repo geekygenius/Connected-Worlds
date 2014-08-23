@@ -64,7 +64,7 @@ public class CommandSystem extends IteratingSystem {
 					&& (currentPlanet.getComponent(Ownership.class).ownership > .5f)
 					&& (Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT) || Gdx.input
 							.isKeyPressed(Input.Keys.CONTROL_RIGHT))) {
-				engine.addEntity(Game.mkFactory(currentAngle, currentPlanet, 1));
+				engine.addEntity(Game.mkFactory(currentAngle, currentPlanet,1));
 				Game.user.factories++;
 				Game.user.money-=5000;
 			}
@@ -76,7 +76,7 @@ public class CommandSystem extends IteratingSystem {
 				for (Entry<Entity> e : engine.getEntitiesFor(factory)) {
 					Center c = e.value.getComponent(Center.class);
 					if (Game.distanceSq(c.x, c.y, pos.x, pos.y) < 20 * 20) {
-						engine.addEntity(Game.mkTank(currentAngle, currentPlanet, 1));
+						engine.addEntity(Game.mkTank(currentAngle, currentPlanet,  Gdx.input.isKeyPressed(Keys.A)?-1:1));
 						Game.user.money-=2000;
 						break;
 					}

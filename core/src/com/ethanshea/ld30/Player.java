@@ -1,6 +1,6 @@
 package com.ethanshea.ld30;
 
 public class Player {
-	public int money=10000;
+	public int money=100000;
 	public int factories;
 }

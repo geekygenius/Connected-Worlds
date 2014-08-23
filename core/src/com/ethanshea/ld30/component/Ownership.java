@@ -19,4 +19,14 @@ public class Ownership extends Component {
 	public Color getTint() {
 		return new Color(ownership < 0 ? (1 - ownership) * .15f + .85f: .85f, .85f, ownership > 0 ? ownership * .15f + .85f: .85f, 1f);
 	}
+
+	public boolean isUser() {
+		return ownership > .5f;
+	}
+	public boolean isEnemy() {
+		return ownership < -.5f;
+	}
+	public boolean isUndecided() {
+		return !(isUser() || isEnemy());
+	}
 }
