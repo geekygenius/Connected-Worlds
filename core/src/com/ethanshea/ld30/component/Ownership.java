@@ -29,4 +29,8 @@ public class Ownership extends Component {
 	public boolean isUndecided() {
 		return !(isUser() || isEnemy());
 	}
+
+	public boolean isEnemy(Ownership own) {
+		return Math.abs(own.ownership-ownership) < .5f;
+	}
 }

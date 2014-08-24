@@ -23,6 +23,7 @@ public class CommandSystem extends IteratingSystem {
 	Entity currentPlanet;
 	float currentAngle;
 	ShapeRenderer render = new ShapeRenderer();
+	int orderNum;
 
 	public CommandSystem(Camera cam) {
 		super(Family.getFamilyFor(Surface.class, Rotation.class, Selection.class, Destination.class));

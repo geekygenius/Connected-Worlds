@@ -32,6 +32,7 @@ public class Game extends ApplicationAdapter implements InputProcessor {
 	static Texture tankImg;
 	static Texture doorImg;
 	static Texture factoryImg;
+	static Texture bulletImg;
 	public static Player user = new Player();
 	public static Player computer = new Player();
 
@@ -52,6 +53,7 @@ public class Game extends ApplicationAdapter implements InputProcessor {
 		font.setColor(1f, 1, .5f, 1);
 		tankImg = new Texture(Gdx.files.internal("tank.png"));
 		doorImg = new Texture(Gdx.files.internal("door.png"));
+		bulletImg = new Texture(Gdx.files.internal("bullet.png"));
 		factoryImg = new Texture(Gdx.files.internal("factory.png"));
 
 		engine.addSystem(new CommandSystem(camera));
@@ -164,7 +166,7 @@ public class Game extends ApplicationAdapter implements InputProcessor {
 		return e;
 	}
 
-	public static Entity mkSurfaceObj(float pos, Entity planet) {
+	public static Entity mkImmobileObj(float pos, Entity planet) {
 		Entity e = new Entity();
 		e.add(new Rotation(pos));
 		e.add(new Surface(planet));
@@ -176,7 +178,7 @@ public class Game extends ApplicationAdapter implements InputProcessor {
 	}
 
 	public static Entity mkFactory(float pos, Entity planet, float ownership) {
-		Entity e = mkSurfaceObj(pos, planet);
+		Entity e = mkImmobileObj(pos, planet);
 		Ownership own = new Ownership(1);
 		e.add(own);
 		Sprite s = new Sprite(factoryImg);
@@ -188,7 +190,7 @@ public class Game extends ApplicationAdapter implements InputProcessor {
 	}
 
 	public static Entity mkDoor(float pos, Entity planet) {
-		Entity e = mkSurfaceObj(pos, planet);
+		Entity e = mkImmobileObj(pos, planet);
 		Sprite s = new Sprite(doorImg);
 		s.setOrigin(16, 0);
 		e.add(new SpriteComponent(s));
@@ -197,20 +199,41 @@ public class Game extends ApplicationAdapter implements InputProcessor {
 		return e;
 	}
 
-	public static Entity mkTank(float pos, Entity planet, float owner) {
+	public static Entity mkMobileObj(float pos, Entity planet,boolean dir) {
 		Entity e = new Entity();
+		e.add(new Rotation(pos));
+		e.add(new Surface(planet));
+		e.add(new Direction(dir));
+		return e;
+	}
+
+	public static Entity mkTank(float pos, Entity planet, float owner) {
+		Entity e = mkMobileObj(pos, planet,true);
 		Ownership own = new Ownership(owner);
 		Sprite s = new Sprite(tankImg);
 		s.setOrigin(16, 0);
 		s.setColor(own.getTint());
 		e.add(new SpriteComponent(s));
-		e.add(new Rotation(pos));
-		e.add(new Surface(planet));
 		if (own.isUser())
 			e.add(new Selection());
 		e.add(own);
 		e.add(new Destination(pos, planet));
+		e.add(new TankID());
 		e.add(new Speed());
+		e.add(new BulletCooldown());
+		return e;
+	}
+
+	public static Entity mkBullet(float pos, Entity planet, float owner, boolean right) {
+		Entity e =  mkMobileObj(pos, planet,right);
+		Ownership own = new Ownership(owner);
+		Sprite s = new Sprite(bulletImg);
+		s.setOriginCenter();
+		s.setColor(own.getTint());
+		e.add(new SpriteComponent(s));
+		e.add(own);
+		e.add(new Height(8));
+		e.add(new BulletID());
 		return e;
 	}
 
