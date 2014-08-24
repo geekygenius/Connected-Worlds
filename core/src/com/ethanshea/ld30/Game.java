@@ -16,11 +16,16 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.ethanshea.ld30.component.*;
+import com.ethanshea.ld30.system.BulletMovment;
 import com.ethanshea.ld30.system.CommandSystem;
+import com.ethanshea.ld30.system.EnemyAI;
 import com.ethanshea.ld30.system.ObjectRenderer;
 import com.ethanshea.ld30.system.PlanetRenderer;
+import com.ethanshea.ld30.system.RocketMovment;
 import com.ethanshea.ld30.system.SecectionManager;
+import com.ethanshea.ld30.system.SpaceObjectRenderer;
 import com.ethanshea.ld30.system.TankAISystem;
+import com.sun.javafx.css.Size;
 
 public class Game extends ApplicationAdapter implements InputProcessor {
 	SpriteBatch batch;
@@ -33,6 +38,7 @@ public class Game extends ApplicationAdapter implements InputProcessor {
 	static Texture doorImg;
 	static Texture factoryImg;
 	static Texture bulletImg;
+	static Texture rocketImg;
 	public static Player user = new Player();
 	public static Player computer = new Player();
 
@@ -55,11 +61,18 @@ public class Game extends ApplicationAdapter implements InputProcessor {
 		doorImg = new Texture(Gdx.files.internal("door.png"));
 		bulletImg = new Texture(Gdx.files.internal("bullet.png"));
 		factoryImg = new Texture(Gdx.files.internal("factory.png"));
+		rocketImg = new Texture(Gdx.files.internal("rocket.png"));
 
+		EnemyAI ai = new EnemyAI();
+		engine.addEntityListener(ai);
 		engine.addSystem(new CommandSystem(camera));
 		engine.addSystem(new TankAISystem());
+		engine.addSystem(new RocketMovment());
+		engine.addSystem(ai);
+		engine.addSystem(new BulletMovment());
 		engine.addSystem(new PlanetRenderer(camera));
 		engine.addSystem(new ObjectRenderer(camera, batch));
+		engine.addSystem(new SpaceObjectRenderer(camera, batch));
 		engine.addSystem(new SecectionManager(camera));
 
 		genLevel();
@@ -166,6 +179,37 @@ public class Game extends ApplicationAdapter implements InputProcessor {
 		return e;
 	}
 
+	public static Entity mkRocket(Entity payload, Destination d) {
+		Entity e = new Entity();
+		Sprite s = new Sprite(rocketImg);
+		s.setOriginCenter();
+		e.add(new SpriteComponent(s));
+
+		Position p = payload.getComponent(Surface.class).surface.getComponent(Position.class);
+		float angleDeg = payload.getComponent(Rotation.class).r;
+		double angleRad = Math.toRadians(angleDeg);
+		float size = payload.getComponent(Surface.class).surface.getComponent(Radius.class).size;
+		Position begin = new Position((float) (Math.cos(angleRad)) * size + p.x, (float) (Math.sin(angleRad)) * size
+				+ p.y);
+		e.add(begin);
+
+		p = payload.getComponent(Destination.class).planet.getComponent(Position.class);
+		angleDeg = payload.getComponent(Destination.class).r;
+		angleRad = Math.toRadians(angleDeg);
+		size = payload.getComponent(Destination.class).planet.getComponent(Radius.class).size;
+		Arrival arrive = new Arrival((float) (Math.cos(angleRad)) * size + p.x, (float) (Math.sin(angleRad)) * size
+				+ p.y);
+		e.add(arrive);
+
+		e.add(new Rotation((float) (Math.toDegrees(Math.atan2(arrive.y-begin.y, arrive.x - begin.x)))));
+
+		e.add(new Ownership(payload.getComponent(Ownership.class).ownership));
+		e.add(new Speed(0));
+		e.add(new Payload(payload));
+		e.add(payload.getComponent(Destination.class));
+		return e;
+	}
+
 	public static Entity mkImmobileObj(float pos, Entity planet) {
 		Entity e = new Entity();
 		e.add(new Rotation(pos));
@@ -186,6 +230,7 @@ public class Game extends ApplicationAdapter implements InputProcessor {
 		s.setColor(own.getTint());
 		e.add(new SpriteComponent(s));
 		e.add(new FactoryID());
+		e.add(new Health(250));
 		return e;
 	}
 
@@ -199,7 +244,7 @@ public class Game extends ApplicationAdapter implements InputProcessor {
 		return e;
 	}
 
-	public static Entity mkMobileObj(float pos, Entity planet,boolean dir) {
+	public static Entity mkMobileObj(float pos, Entity planet, boolean dir) {
 		Entity e = new Entity();
 		e.add(new Rotation(pos));
 		e.add(new Surface(planet));
@@ -208,7 +253,7 @@ public class Game extends ApplicationAdapter implements InputProcessor {
 	}
 
 	public static Entity mkTank(float pos, Entity planet, float owner) {
-		Entity e = mkMobileObj(pos, planet,true);
+		Entity e = mkMobileObj(pos, planet, true);
 		Ownership own = new Ownership(owner);
 		Sprite s = new Sprite(tankImg);
 		s.setOrigin(16, 0);
@@ -219,13 +264,14 @@ public class Game extends ApplicationAdapter implements InputProcessor {
 		e.add(own);
 		e.add(new Destination(pos, planet));
 		e.add(new TankID());
-		e.add(new Speed());
+		e.add(new Speed(0));
 		e.add(new BulletCooldown());
+		e.add(new Health(100));
 		return e;
 	}
 
 	public static Entity mkBullet(float pos, Entity planet, float owner, boolean right) {
-		Entity e =  mkMobileObj(pos, planet,right);
+		Entity e = mkMobileObj(pos, planet, right);
 		Ownership own = new Ownership(owner);
 		Sprite s = new Sprite(bulletImg);
 		s.setOriginCenter();

@@ -50,6 +50,7 @@ public class ObjectRenderer extends IteratingSystem {
 		if (entity.hasComponent(Height.class)){
 			size += entity.getComponent(Height.class).height;
 		}
+		size -= 1;
 		
 		float sx = (float) Math.cos(rad);
 		float sy = (float) Math.sin(rad);

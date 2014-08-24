@@ -30,7 +30,7 @@ public class Ownership extends Component {
 		return !(isUser() || isEnemy());
 	}
 
-	public boolean isEnemy(Ownership own) {
-		return Math.abs(own.ownership-ownership) < .5f;
+	public boolean isEnemyOf(Ownership own) {
+		return Math.abs(own.ownership-ownership) > .5f;
 	}
 }

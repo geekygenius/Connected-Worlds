@@ -26,7 +26,7 @@ public class CommandSystem extends IteratingSystem {
 	int orderNum;
 
 	public CommandSystem(Camera cam) {
-		super(Family.getFamilyFor(Surface.class, Rotation.class, Selection.class, Destination.class));
+		super(Family.getFamilyFor(Surface.class, Rotation.class, Selection.class, Destination.class,Direction.class));
 		this.cam = cam;
 	}
 
@@ -38,6 +38,7 @@ public class CommandSystem extends IteratingSystem {
 	public void update(float delta) {
 		Vector3 pos = cam.unproject(new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0));
 		currentPlanet = null;
+		orderNum = 0;
 		for (Entry<Entity> e : engine.getEntitiesFor(planet)) {
 			Position center = e.value.getComponent(Position.class);
 
@@ -95,7 +96,10 @@ public class CommandSystem extends IteratingSystem {
 			// Set the destination
 			if (entity.getComponent(Selection.class).selected) {
 				d.planet = currentPlanet;
-				d.r = currentAngle;
+				//Stagger the tanks behind one another
+				d.r = currentAngle + entity.getComponent(Direction.class).asFloat()*-5*orderNum;
+				
+				orderNum++;
 			}
 		}
 	}
