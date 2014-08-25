@@ -9,4 +9,5 @@ public class Destination extends Rotation {
 	}
 
 	public Entity planet; 
+	public boolean arrived = true;
 }

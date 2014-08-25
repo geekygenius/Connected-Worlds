@@ -4,43 +4,49 @@ import java.util.ArrayList;
 
 import com.badlogic.ashley.core.Engine;
 import com.badlogic.ashley.core.Entity;
+import com.badlogic.ashley.core.EntityListener;
 import com.badlogic.ashley.core.Family;
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.InputProcessor;
+import com.badlogic.gdx.audio.Music;
+import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.ParticleEffect;
+import com.badlogic.gdx.graphics.g2d.ParticleEmitter.ScaledNumericValue;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.math.MathUtils;
 import com.ethanshea.ld30.component.*;
-import com.ethanshea.ld30.system.BulletMovment;
-import com.ethanshea.ld30.system.CommandSystem;
-import com.ethanshea.ld30.system.EnemyAI;
-import com.ethanshea.ld30.system.ObjectRenderer;
-import com.ethanshea.ld30.system.PlanetRenderer;
-import com.ethanshea.ld30.system.RocketMovment;
-import com.ethanshea.ld30.system.SecectionManager;
-import com.ethanshea.ld30.system.SpaceObjectRenderer;
-import com.ethanshea.ld30.system.TankAISystem;
-import com.sun.javafx.css.Size;
+import com.ethanshea.ld30.system.*;
 
-public class Game extends ApplicationAdapter implements InputProcessor {
+public class Game extends ApplicationAdapter implements InputProcessor, EntityListener {
 	SpriteBatch batch;
 	SpriteBatch hud;
 	Engine engine;
 	Family planet;
 	OrthographicCamera camera;
+	boolean fullscreen = false;
 	static BitmapFont font;
 	static Texture tankImg;
 	static Texture doorImg;
 	static Texture factoryImg;
 	static Texture bulletImg;
 	static Texture rocketImg;
+	public static Sound shoot;
+	public static Sound blastoff;
+	public static Sound build;
+	public static Sound land;
+	public static Sound direct;
+	public static Sound invalid;
+	public static Texture storeImg;
 	public static Player user = new Player();
 	public static Player computer = new Player();
+	static Music background;
 
 	@Override
 	public void create() {
@@ -62,18 +68,33 @@ public class Game extends ApplicationAdapter implements InputProcessor {
 		bulletImg = new Texture(Gdx.files.internal("bullet.png"));
 		factoryImg = new Texture(Gdx.files.internal("factory.png"));
 		rocketImg = new Texture(Gdx.files.internal("rocket.png"));
+		storeImg = new Texture(Gdx.files.internal("store.png"));
+
+		background = Gdx.audio.newMusic(Gdx.files.internal("emergence.ogg"));
+		background.setLooping(true);
+		background.setVolume(.5f);
+		background.play();
+
+		shoot = Gdx.audio.newSound(Gdx.files.internal("shoot.wav"));
+		build = Gdx.audio.newSound(Gdx.files.internal("build.wav"));
+		blastoff = Gdx.audio.newSound(Gdx.files.internal("blastoff.wav"));
+		land = Gdx.audio.newSound(Gdx.files.internal("land.wav"));
+		direct = Gdx.audio.newSound(Gdx.files.internal("direct.wav"));
+		invalid = Gdx.audio.newSound(Gdx.files.internal("invalid.wav"));
 
 		EnemyAI ai = new EnemyAI();
 		engine.addEntityListener(ai);
-		engine.addSystem(new CommandSystem(camera));
-		engine.addSystem(new TankAISystem());
+		engine.addEntityListener(this);
+		engine.addSystem(new TankAI());
 		engine.addSystem(new RocketMovment());
 		engine.addSystem(ai);
 		engine.addSystem(new BulletMovment());
 		engine.addSystem(new PlanetRenderer(camera));
 		engine.addSystem(new ObjectRenderer(camera, batch));
 		engine.addSystem(new SpaceObjectRenderer(camera, batch));
+		engine.addSystem(new HealthRenderer(camera));
 		engine.addSystem(new SecectionManager(camera));
+		engine.addSystem(new CommandSystem(camera));
 
 		genLevel();
 		// engine.addEntity(mkTank(0, p));
@@ -97,7 +118,8 @@ public class Game extends ApplicationAdapter implements InputProcessor {
 		Entity enemy = mkPlanet(15000, 0, 250);
 		enemy.getComponent(Ownership.class).ownership = -1;
 		planets.add(new PlanetSystem(enemy, mkDoor(-45, enemy)));
-		genLoop: while (planets.size() < 15) {
+		genLoop:
+		while (planets.size() < 15) {
 			float x = (float) (Math.random() * 15000);
 			float y = (float) (Math.random() * 15000);
 			for (PlanetSystem e : planets) {
@@ -109,7 +131,7 @@ public class Game extends ApplicationAdapter implements InputProcessor {
 			}
 			// It's not close to another planet, go ahead and make it.
 			Entity p = mkPlanet(x, y, 100 + ((float) Math.random() * 300));
-			Entity door = mkDoor(((float) Math.random() * 360) - 180, p);
+			Entity door = mkDoor(randomAngle(), p);
 
 			planets.add(new PlanetSystem(p, door));
 		}
@@ -118,10 +140,7 @@ public class Game extends ApplicationAdapter implements InputProcessor {
 			Destination d = sys.door.getComponent(Destination.class);
 			PlanetSystem dest = planets.get((int) (Math.random() * 15));
 			d.planet = dest.planet;
-			d.r = dest.door.getComponent(Rotation.class).r + 180;
-			if (d.r > 180) {
-				d.r -= 360;
-			}
+			d.r = randomAngle();
 		}
 
 		for (PlanetSystem sys : planets) {
@@ -141,6 +160,8 @@ public class Game extends ApplicationAdapter implements InputProcessor {
 		if (Gdx.input.isKeyPressed(Keys.ESCAPE)) {
 			Gdx.app.exit();
 		}
+		
+		//Move the screen around
 
 		float MOVMENT_SPEED = 15;
 		if (Gdx.input.isKeyPressed(Keys.UP)) {
@@ -154,20 +175,65 @@ public class Game extends ApplicationAdapter implements InputProcessor {
 		} else if (Gdx.input.isKeyPressed(Keys.LEFT)) {
 			camera.position.x -= MOVMENT_SPEED * camera.zoom;
 		}
+		
+		float scrX = Gdx.input.getX() * (800f / Gdx.graphics.getWidth());
+		float scrY = Gdx.input.getY() * (480f / Gdx.graphics.getHeight());
+		
+		if (scrX<20f){
+			camera.position.x -= MOVMENT_SPEED * camera.zoom;
+		}else if (scrX>790f){
+			camera.position.x += MOVMENT_SPEED * camera.zoom;
+		}
+		if (scrY<20f){
+			camera.position.y += MOVMENT_SPEED * camera.zoom;
+		}else if (scrY>460f){
+			camera.position.y -= MOVMENT_SPEED * camera.zoom;
+		}
+		
+		camera.position.x = MathUtils.clamp(camera.position.x,-1000,16000);
+		camera.position.y = MathUtils.clamp(camera.position.y,-1000,16000);
+
+		if (Gdx.input.isKeyJustPressed(Keys.F11)) {
+			fullscreen = !fullscreen;
+			if (fullscreen)
+				Gdx.graphics.setDisplayMode(Gdx.graphics.getDesktopDisplayMode().width,
+						Gdx.graphics.getDesktopDisplayMode().height, true);
+			else
+				Gdx.graphics.setDisplayMode(800, 480, false);
+		}
+
+		if (Gdx.input.isKeyJustPressed(Keys.M)) {
+			if (background.isPlaying()) {
+				background.stop();
+			} else {
+				background.play();
+			}
+		}
 
 		camera.update();
 
 		user.money += user.factories;
-		computer.money += computer.factories;
+		computer.money += computer.factories * 3;
 
 		// Update
-		accum += Gdx.graphics.getDeltaTime();
-		// engine.update(Gdx.graphics.getDeltaTime());
-		engine.update(accum);
+		
+		engine.update(Gdx.graphics.getDeltaTime());
 		hud.begin();
-		font.draw(hud, String.format("$%,d", user.money), 0, font.getCapHeight() - font.getDescent());
+		font.draw(hud, ("$" + insertGroupings(user.money)), 0, font.getCapHeight() - font.getDescent());
 		hud.end();
+	}
 
+	private String insertGroupings(int in) {
+		String str = String.valueOf(in);
+		int counter = 0;
+		for (int i = str.length() - 1; i > 0; i--) {
+			counter++;
+			if (counter == 3) {// Every third
+				str = str.substring(0, i) + " " + str.substring(i, str.length());
+				counter = 0;
+			}
+		}
+		return str;
 	}
 
 	public static Entity mkPlanet(float x, float y, float size) {
@@ -201,7 +267,16 @@ public class Game extends ApplicationAdapter implements InputProcessor {
 				+ p.y);
 		e.add(arrive);
 
-		e.add(new Rotation((float) (Math.toDegrees(Math.atan2(arrive.y-begin.y, arrive.x - begin.x)))));
+		float rot = (float) (Math.toDegrees(Math.atan2(arrive.y - begin.y, arrive.x - begin.x)));
+		e.add(new Rotation(rot));
+		
+		ParticleEffect effect = new ParticleEffect();
+		effect.load(Gdx.files.internal("jet.p"), Gdx.files.internal("parts"));
+		ScaledNumericValue val = effect.getEmitters().get(0).getAngle();
+		val.setHighMax(rot+20+180);
+		val.setHighMin(rot-20+180);
+		val.setLow(rot-20+180);
+		e.add(new ParticleComponent(effect));
 
 		e.add(new Ownership(payload.getComponent(Ownership.class).ownership));
 		e.add(new Speed(0));
@@ -223,14 +298,14 @@ public class Game extends ApplicationAdapter implements InputProcessor {
 
 	public static Entity mkFactory(float pos, Entity planet, float ownership) {
 		Entity e = mkImmobileObj(pos, planet);
-		Ownership own = new Ownership(1);
+		Ownership own = new Ownership(ownership);
 		e.add(own);
 		Sprite s = new Sprite(factoryImg);
 		s.setOrigin(16, 0);
 		s.setColor(own.getTint());
 		e.add(new SpriteComponent(s));
 		e.add(new FactoryID());
-		e.add(new Health(250));
+		e.add(new Health(20));
 		return e;
 	}
 
@@ -267,6 +342,7 @@ public class Game extends ApplicationAdapter implements InputProcessor {
 		e.add(new Speed(0));
 		e.add(new BulletCooldown());
 		e.add(new Health(100));
+		e.add(new Fighting());
 		return e;
 	}
 
@@ -334,5 +410,34 @@ public class Game extends ApplicationAdapter implements InputProcessor {
 		if (camera.zoom > 32f)
 			camera.zoom = 32f;
 		return true;
+	}
+
+	@Override
+	public void entityAdded(Entity entity) {
+		editCount(entity, 1);
+	}
+
+	@Override
+	public void entityRemoved(Entity entity) {
+		editCount(entity, -1);
+	}
+
+	public void editCount(Entity entity, int dir) {
+		if (!entity.hasComponent(Ownership.class))
+			return;
+		if (entity.hasComponent(FactoryID.class)) {
+			entity.getComponent(Surface.class).surface.getComponent(FactoryCount.class).count += dir;
+			Ownership own = entity.getComponent(Ownership.class);
+			if (own.isEnemy()) {
+				computer.factories += dir;
+			}
+			if (own.isUser()) {
+				user.factories += dir;
+			}
+		}
+	}
+
+	public static float randomAngle() {
+		return (float) (Math.random() * 360 - 180);
 	}
 }

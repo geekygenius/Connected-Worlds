@@ -8,6 +8,7 @@ import com.ethanshea.ld30.Constants;
 import com.ethanshea.ld30.Game;
 import com.ethanshea.ld30.component.Arrival;
 import com.ethanshea.ld30.component.Destination;
+import com.ethanshea.ld30.component.ParticleComponent;
 import com.ethanshea.ld30.component.Payload;
 import com.ethanshea.ld30.component.Position;
 import com.ethanshea.ld30.component.Rotation;
@@ -42,10 +43,12 @@ public class RocketMovment extends IteratingSystem {
 		Position dest = entity.getComponent(Arrival.class);
 		if (Game.distanceSq(pos.x, pos.y, dest.x, dest.y) < speed.speed * speed.speed * 40) {
 			// We've arrived!
+			Game.land.play();
 			Entity payload = entity.getComponent(Payload.class).load;
 			payload.getComponent(Surface.class).surface = entity.getComponent(Destination.class).planet;
 			payload.getComponent(Rotation.class).r = entity.getComponent(Destination.class).r;
 			payload.add(entity.getComponent(Destination.class));
+			entity.getComponent(ParticleComponent.class).effect.dispose();
 			engine.addEntity(payload);
 			engine.removeEntity(entity);
 		}
