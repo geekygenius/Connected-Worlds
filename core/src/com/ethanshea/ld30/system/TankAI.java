@@ -50,7 +50,19 @@ public class TankAI extends IteratingSystem {
 
 		// Collision decection/Shoot at enimies
 		Entity planet = entity.getComponent(Surface.class).surface;
+		Fighting fight = entity.getComponent(Fighting.class);
+		boolean fighting = false;
 		for (Entry<Entity> e : engine.getEntitiesFor(surfaceObj)) {
+			// A bug lies here. I have no idea what causes it.
+			if (e == null)
+				continue;
+			if (e.value == null)
+				continue;
+			if (e.value.getComponent(Surface.class) == null)
+				continue;
+			if (e.value.getComponent(Surface.class).surface == null)
+				continue;
+			// </bugfix>
 			if (e.value.getComponent(Surface.class).surface.equals(planet)) {
 				if (Math.abs(e.value.getComponent(Rotation.class).r - rot.r) < 1) {
 					if (e.value.hasComponent(DoorID.class)) {
@@ -61,11 +73,10 @@ public class TankAI extends IteratingSystem {
 					}
 				}
 
-				Fighting fight = entity.getComponent(Fighting.class);
 				// Can we shoot at someone?
 				if (e.value.hasComponent(Ownership.class) && own.isEnemyOf(e.value.getComponent(Ownership.class))
 						&& (e.value.getComponent(Rotation.class).r - rot.r + 360 % 180 < Constants.SHOOTING_DISTANCE)) {
-					fight.fighting = true;
+					fighting = true;
 					fight.target = e.value;
 					if (cool.cooldown < 0) {
 						engine.addEntity(Game.mkBullet(rot.r, planet, own.ownership, direction.right));
@@ -73,10 +84,10 @@ public class TankAI extends IteratingSystem {
 						cool.cooldown = Constants.BULLET_COOLDOWN;
 					}
 				} else {
-					fight.fighting = false;
 				}
 			}
 		}
+		fight.fighting = fighting;
 
 		// Planet capturing
 		Ownership planetOwner = entity.getComponent(Surface.class).surface.getComponent(Ownership.class);

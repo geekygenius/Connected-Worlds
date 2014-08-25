@@ -16,6 +16,7 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.BitmapFont.TextBounds;
 import com.badlogic.gdx.graphics.g2d.ParticleEffect;
 import com.badlogic.gdx.graphics.g2d.ParticleEmitter.ScaledNumericValue;
 import com.badlogic.gdx.graphics.g2d.Sprite;
@@ -47,6 +48,8 @@ public class Game extends ApplicationAdapter implements InputProcessor, EntityLi
 	public static Player user = new Player();
 	public static Player computer = new Player();
 	static Music background;
+	
+	String msg="";
 
 	@Override
 	public void create() {
@@ -209,17 +212,19 @@ public class Game extends ApplicationAdapter implements InputProcessor, EntityLi
 				background.play();
 			}
 		}
-
+		
 		camera.update();
 
 		user.money += user.factories;
-		computer.money += computer.factories * 3;
+		computer.money += computer.factories * 4;
 
 		// Update
 		
 		engine.update(Gdx.graphics.getDeltaTime());
 		hud.begin();
 		font.draw(hud, ("$" + insertGroupings(user.money)), 0, font.getCapHeight() - font.getDescent());
+		TextBounds bounds = font.getBounds(msg);
+		font.draw(hud, msg, 400 - bounds.width/2,240+bounds.height/2);
 		hud.end();
 	}
 
@@ -365,6 +370,7 @@ public class Game extends ApplicationAdapter implements InputProcessor, EntityLi
 
 	public void dispose() {
 		batch.dispose();
+		background.dispose();
 	}
 
 	@Override
@@ -428,11 +434,20 @@ public class Game extends ApplicationAdapter implements InputProcessor, EntityLi
 		if (entity.hasComponent(FactoryID.class)) {
 			entity.getComponent(Surface.class).surface.getComponent(FactoryCount.class).count += dir;
 			Ownership own = entity.getComponent(Ownership.class);
+			Player p;
+			String m;
 			if (own.isEnemy()) {
-				computer.factories += dir;
+				p = computer;
+				m = "You win!";
+			}else if (own.isUser()) {
+				p = user;
+				m = "You lose.";
+			}else{
+				return;
 			}
-			if (own.isUser()) {
-				user.factories += dir;
+			p.factories+=dir;
+			if ((p.factories==0)&&p.money==0){
+				
 			}
 		}
 	}

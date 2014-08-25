@@ -70,7 +70,6 @@ public class EnemyAI extends EntitySystem implements EntityListener {
 		for (Entry<Entity> e : engine.getEntitiesFor(tankFamily)) {
 			if (e.value.getComponent(Ownership.class).isEnemy()) {
 				Destination d = e.value.getComponent(Destination.class);
-				System.out.println(e.value.getComponent(Fighting.class).fighting);
 				if (e.value.getComponent(Fighting.class).fighting) {
 					d.r = e.value.getComponent(Fighting.class).target.getComponent(Rotation.class).r;
 					d.arrived = false;
