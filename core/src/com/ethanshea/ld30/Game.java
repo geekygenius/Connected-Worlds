@@ -156,6 +156,7 @@ public class Game extends ApplicationAdapter implements InputProcessor, EntityLi
 
 	@Override
 	public void render() {
+		if (Gdx.input.isKeyPressed(Keys.SPACE)) return;
 		Gdx.gl.glClearColor(0, 0, 0, 1);
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
@@ -446,7 +447,7 @@ public class Game extends ApplicationAdapter implements InputProcessor, EntityLi
 				return;
 			}
 			p.factories+=dir;
-			if ((p.factories==0)&&p.money==0){
+			if ((p.factories==0)&&p.money<5000){
 				
 			}
 		}
